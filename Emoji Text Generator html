@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Emoji ↔ Text Translator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --text: #333;
+      --card-bg: #fff;
+      --card-shadow: rgba(0,0,0,0.08);
+      --label: #555;
+      --textarea-bg: #fff;
+      --textarea-border: #ccc;
+      --button-bg: #0078d7;
+      --button-hover: #005fa3;
+      --output-bg: #f9fafb;
+      --output-border: #ddd;
+    }
+
+    body.dark {
+      --bg: #1e1f22;
+      --text: #e0e0e0;
+      --card-bg: #2a2b2f;
+      --card-shadow: rgba(0,0,0,0.6);
+      --label: #ccc;
+      --textarea-bg: #2a2b2f;
+      --textarea-border: #555;
+      --button-bg: #3399ff;
+      --button-hover: #267acc;
+      --output-bg: #2a2b2f;
+      --output-border: #444;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 2rem;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--text);
+      margin-bottom: 2rem;
+    }
+
+    .row {
+      background: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px var(--card-shadow);
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--label);
+      transition: color 0.3s ease;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid var(--textarea-border);
+      border-radius: 6px;
+      resize: vertical;
+      background: var(--textarea-bg);
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    textarea:focus {
+      border-color: var(--button-bg);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0,120,215,0.2);
+    }
+
+    .actions {
+      margin-top: 0.5rem;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: var(--button-bg);
+      color: #fff;
+      font-weight: 600;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    button:hover {
+      background: var(--button-hover);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .output {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: var(--output-bg);
+      border: 1px solid var(--output-border);
+      border-radius: 6px;
+      min-height: 3rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "Segoe UI Emoji", system-ui, sans-serif;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Dark mode toggle button */
+    #toggleDark {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--button-bg);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <button id="toggleDark">🌙 Dark Mode</button>
+  <h1>Emoji ↔ Text Translator</h1>
+
+  <!-- Text to Emoji -->
+  <div class="row">
+    <label for="inputText">Enter text (A–Z → emojis, spaces → 🚧):</label>
+    <textarea id="inputText" rows="3" placeholder="Type text..."></textarea>
+    <div class="actions">
+      <button id="toEmoji">Convert to Emojis</button>
+    </div>
+    <div id="emojiOutput" class="output"></div>
+  </div>
+
+  <!-- Emoji to Text -->
+  <div class="row">
+    <label for="inputEmoji">Paste emojis (🐙🐚... → text):</label>
+    <textarea id="inputEmoji" rows="3" placeholder="Paste emojis..."></textarea>
+    <div class="actions">
+      <button id="toText">Convert to Text</button>
+    </div>
+    <div id="textOutput" class="output"></div>
+  </div>
+
+  <script>
+    // Emoji alphabet mapping
+    const MAP = {
+      A: "🧪", B: "🌪️", C: "🛸", D: "🎭", E: "🐚", F: "🧊", G: "🌑", H: "🗜️",
+      I: "🪁", J: "🦂", K: "🪨", L: "🐙", M: "🔮", N: "🦴", O: "🧬", P: "🪄",
+      Q: "🦔", R: "🛕", S: "🪶", T: "🧷", U: "🧱", V: "🛑", W: "🧭", X: "🪙",
+      Y: "🧯", Z: "🐉"
+    };
+
+    const REVERSE_MAP = {};
+    for (const [letter, emoji] of Object.entries(MAP)) {
+      REVERSE_MAP[emoji] = letter;
+    }
+    REVERSE_MAP["🚧"] = " ";
+
+    function toEmoji(text) {
+      return text.split("").map(ch => {
+        if (ch === " ") return "🚧";
+        const up = ch.toUpperCase();
+        return MAP[up] || ch;
+      }).join("");
+    }
+
+    function toText(emojiString) {
+      let result = emojiString;
+      for (const [emoji, letter] of Object.entries(REVERSE_MAP)) {
+        const regex = new RegExp(emoji, "g");
+        result = result.replace(regex, letter);
+      }
+      return result;
+    }
+
+    document.getElementById("toEmoji").addEventListener("click", () => {
+      const input = document.getElementById("inputText").value;
+      document.getElementById("emojiOutput").textContent = toEmoji(input);
+    });
+
+    document.getElementById("toText").addEventListener("click", () => {
+      const input = document.getElementById("inputEmoji").value;
+      document.getElementById("textOutput").textContent = toText(input);
+    });
+
+    // Dark mode toggle
+    const toggleBtn = document.getElementById("toggleDark");
+    toggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      toggleBtn.textContent = document.body.classList.contains("dark")
+        ? "☀️ Light Mode"
+        : "🌙 Dark Mode";
+    });
+  </script>
+</body>
+</html>
